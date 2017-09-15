@@ -1,5 +1,5 @@
 {
     "board": "arduino:avr:leonardo",
-    "sketch": "HeaterControl.ino",
+    "sketch": "HeatControl.ino",
     "port": "COM8"
 }

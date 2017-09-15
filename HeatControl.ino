@@ -22,18 +22,9 @@
 #define BUTTON_DEAD_TIME 500     // [ms]
 
 // Global Variable Declarations
-unsigned long timer_temperature = 0;
-unsigned long timer_button = 0;
-unsigned long timer_state = 0;
-bool outputActive[2] = {false, false};
-bool lcdOutputActive[2] = {true, true};
-unsigned long activated = 0;
-float temperature = 26;                 // Current temperature
-float temperatureOld = 25;              // Temperature before CONTROL_LOOP_TIME
-float lcdTempTarget = 0;                 // Current temperature
-float lcdTempOrigin = 0;              // Temperature before CONTROL_LOOP_TIME
-int targetTemperature = 26;             // Target temperature
-int lcdtime = 0;
+unsigned long timer[4] = {0, 0, 0, 0};
+bool outputState[4] = {false, false, true, true}; // +, -, + old, - old
+float T[5] = {26, 26, 0, 0, 0}; // Temperature {current, target, old, lcdCurrent, lcdTarget}
 float dT = 0, dTold = 1;
 
 OneWire oneWire(tempPin);
@@ -72,6 +63,7 @@ void setup() {
 }
 
 void loop() {
+  readTemperature();
   readButton();
   checkState();
   close();
@@ -80,28 +72,28 @@ void loop() {
 
 
 void printLcd() {
-  if(lcdTempTarget - targetTemperature != 0) {
+  if(T[4] - T[1] != 0) {
     lcd.setCursor(3,0);
-    lcd.print((int)targetTemperature);
-    lcdTempTarget = targetTemperature;
+    lcd.print((int)T[1]);
+    T[4] = T[1];
   }
 
-  if(lcdTempOrigin - temperature != 0) {
+  if(T[3] - T[0] != 0) {
     lcd.setCursor(3,1);
-    lcd.print(temperature);
-    lcdTempOrigin = temperature;
+    lcd.print(T[0]);
+    T[3] = T[0];
   }
 
-  if(outputActive[0] != lcdOutputActive[0]) {
+  if(outputState[0] != outputState[2]) {
     lcd.setCursor(12,1);
-    lcd.print(outputActive[0]);
-    lcdOutputActive[0] = outputActive[0];
+    lcd.print(outputState[0]);
+    outputState[2] = outputState[0];
   }
 
-  if(outputActive[1] != lcdOutputActive[1]) {
+  if(outputState[1] != outputState[3]) {
     lcd.setCursor(15,1);
-    lcd.print(outputActive[1]);
-    lcdOutputActive[1] = outputActive[1];
+    lcd.print(outputState[1]);
+    outputState[3] = outputState[1];
   }
 
   if(dT != dTold) {
@@ -112,66 +104,64 @@ void printLcd() {
 }
 
 void close() {
-  if(outputActive[0] == true && millis() - activated > CONTROL_ACTIVE_TIME) {
+  if(outputState[0] == true && millis() - timer[0] > CONTROL_ACTIVE_TIME) {
     digitalWrite(output0, LOW);
-    outputActive[0] = false;
-  } else if (outputActive[1] == true && millis() - activated > CONTROL_ACTIVE_TIME) {
+    outputState[0] = false;
+  } else if (outputState[1] == true && millis() - timer[0] > CONTROL_ACTIVE_TIME) {
     digitalWrite(output1, LOW);
-    outputActive[1] = false;
+    outputState[1] = false;
   }
 }
 
 void checkState() {
-  if(millis() - timer_state > CONTROL_LOOP_TIME) {
-    if(targetTemperature - temperature > 2.0 || temperature < temperatureOld) {
+  if(millis() - timer[1] > CONTROL_LOOP_TIME) {
+    if(T[1] - T[0] > 2.0 || T[0] < T[2]) {
       // Open for CONTROL_ACTIVE_TIME
-      if(temperature > 0 && outputActive[0] == false && outputActive[1] == false) {
+      if(T[0] > 0 && outputState[0] == false && outputState[1] == false) {
         digitalWrite(output0, HIGH);
-        outputActive[0] = true;
-        activated = millis();
+        outputState[0] = true;
+        timer[0] = millis();
       }
-    } else if (targetTemperature - temperature < -2.0 || temperature > temperatureOld) {
+    } else if (T[1] - T[0] < -2.0 || T[0] > T[2]) {
       // Close for CONTROL_ACTIVE_TIME
-      if(temperature > 0 && outputActive[0] == false && outputActive[1] == false) {
+      if(T[0] > 0 && outputState[0] == false && outputState[1] == false) {
         digitalWrite(output1, HIGH);
-        outputActive[1] = true;
-        activated = millis();
+        outputState[1] = true;
+        timer[0] = millis();
       }
     }
-    timer_state = millis();
-    dT = (temperature - temperatureOld) / CONTROL_LOOP_TIME * 60.0 * 1000.0;
-    temperatureOld = temperature;
+    timer[1] = millis();
+    dT = (T[0] - T[2]) / CONTROL_LOOP_TIME * 60.0 * 1000.0;
+    T[2] = T[0];
   }
-  if (temperature <= 0) {
+  if (T[0] <= 0) {
     digitalWrite(output0, LOW);
     digitalWrite(output1, LOW);
-    outputActive[0] = false;
-    outputActive[1] = false;
+    outputState[0] = false;
+    outputState[1] = false;
   }
 }
 
 void readButton() {
   // If timer, read button (button deadtime)
   // if pressed, increase temperature by one in range [20,37]
-  if(millis() - timer_button > BUTTON_DEAD_TIME) {
+  if(millis() - timer[2] > BUTTON_DEAD_TIME) {
     int button = lcd.button();
     if (button == 1) {
-      targetTemperature = (targetTemperature - 20 + 1)%18 + 20;
-      timer_button = millis();
+      T[1] = ((int)T[1] - 20 + 1)%18 + 20;
+      timer[2] = millis();
     } else if (button == 2) {
-      targetTemperature--;
-      if(targetTemperature == 19) {
-        targetTemperature = 37;
-      }
-      timer_button = millis();
+      T[1]--;
+      if(T[1] == 19) T[1] = 37;
+      timer[2] = millis();
     }
   }
 }
 
 void readTemperature() {
-  if(millis() - timer_temperature > 1000) {
+  if(millis() - timer[3] > 1000) {
     sensors.requestTemperatures();
-    temperature = sensors.getTempCByIndex(0);
-    timer_temperature = millis();
+    T[0] = sensors.getTempCByIndex(0);
+    timer[3] = millis();
   }
 }
