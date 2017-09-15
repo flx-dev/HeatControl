@@ -1,9 +1,18 @@
-### Heater control
+# Arduino based heat stabilizer
 
 Reads temperature from DS18B20 Sensor via DallasTemperature and OneWire library.
-Got a button for increasing the target temperature in range [20, 38]. Uses an on board
-LED for displaying the target and origin temperature.
+Uses up and down button from shield to adjust the target temperature
+in range [20,38]. Shield displays current temperature, target temperature,
+temperature derivative, output open isActive and output close isActive.
 
 ### Output
 
-Has four digital outputs for controlling the heater. The pins 9 to 12 are used for this purpose.
+Has two digital outputs for controlling the heater.
+
+### Dependencies
+#### Arduino Libraries
+LiquidCrystal
+OneWire
+DallasTemperature
+#### External
+https://github.com/dzindra/LCDKeypad
