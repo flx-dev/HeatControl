@@ -15,4 +15,4 @@ Has two digital outputs for controlling the heater.
 - OneWire
 - DallasTemperature
 #### External
-https://github.com/dzindra/LCDKeypad
+- https://github.com/dzindra/LCDKeypad
