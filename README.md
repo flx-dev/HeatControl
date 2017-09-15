@@ -11,8 +11,8 @@ Has two digital outputs for controlling the heater.
 
 ### Dependencies
 #### Arduino Libraries
-LiquidCrystal
-OneWire
-DallasTemperature
+- LiquidCrystal
+- OneWire
+- DallasTemperature
 #### External
 https://github.com/dzindra/LCDKeypad
