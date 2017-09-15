@@ -13,9 +13,6 @@
 #include<DallasTemperature.h>
 
 // PIN and CONSTANT Definitions
-#define DEBUG true // Print temperature and gate states to Serial monitor (9600)
-
-#define controlPin 3             // Button
 #define output0 11               // Open
 #define output1 12               // Close
 #define tempPin 2                // DS18B20
@@ -23,21 +20,11 @@
 #define CONTROL_ACTIVE_TIME 1000 // [ms]
 #define CONTROL_LOOP_TIME 30000  // [ms]
 #define BUTTON_DEAD_TIME 500     // [ms]
-#define BLINK_TOTAL_TIME 10000   // [ms] 
-#define DIGIT_OFFSET_TIME 5000   // [ms]
-#define BLINK_DELAY_TIME 400     // [ms] For 10 digits, at least 4000ms + time_on
-#define LED_ON_TIME 50           // [ms] LED ON time
 
 // Global Variable Declarations
-unsigned long timer_blink_outside = 0;
-unsigned long timer_blink[2] = {0, 0};
 unsigned long timer_temperature = 0;
 unsigned long timer_button = 0;
-unsigned long timer_controller = 0;
-unsigned long timer_serial = 0;
 unsigned long timer_state = 0;
-bool state[2] = {false, false};         // LED state, on/off
-bool digits[2] = {false, false};        // false = 10, true = 1
 bool outputActive[2] = {false, false};
 bool lcdOutputActive[2] = {true, true};
 unsigned long activated = 0;
@@ -46,8 +33,6 @@ float temperatureOld = 25;              // Temperature before CONTROL_LOOP_TIME
 float lcdTempTarget = 0;                 // Current temperature
 float lcdTempOrigin = 0;              // Temperature before CONTROL_LOOP_TIME
 int targetTemperature = 26;             // Target temperature
-int counter[2] = {0, 0};                // #Blinks until digits
-int buttonPressed;
 int lcdtime = 0;
 float dT = 0, dTold = 1;
 
@@ -55,34 +40,12 @@ OneWire oneWire(tempPin);
 DallasTemperature sensors(&oneWire);
 LCDKeypad lcd;
 
-byte c_up[8] = {
-  B00100,
-  B01110,
-  B10101,
-  B00100,
-  B00100,
-  B00100,
-  B00100,
-  B00100,
-};
-
-byte c_down[8] = {
-  B00100,
-  B00100,
-  B00100,
-  B00100,
-  B00100,
-  B10101,
-  B01110,
-  B00100,
-};
+byte c_up[8] = { B00100, B01110, B10101, B00100, B00100, B00100, B00100, B00100 };
+byte c_down[8] = { B00100, B00100, B00100, B00100, B00100, B10101, B01110, B00100 };
 
 
 void setup() {
-  if(DEBUG) Serial.begin(9600);
-
   // Define Pinmodes
-  pinMode(controlPin, INPUT_PULLUP);
   pinMode(output0, OUTPUT);
   pinMode(output1, OUTPUT);
   digitalWrite(output0, LOW);
@@ -161,14 +124,14 @@ void close() {
 void checkState() {
   if(millis() - timer_state > CONTROL_LOOP_TIME) {
     if(targetTemperature - temperature > 2.0 || temperature < temperatureOld) {
-      // Open for 500ms
+      // Open for CONTROL_ACTIVE_TIME
       if(temperature > 0 && outputActive[0] == false && outputActive[1] == false) {
         digitalWrite(output0, HIGH);
         outputActive[0] = true;
         activated = millis();
       }
     } else if (targetTemperature - temperature < -2.0 || temperature > temperatureOld) {
-      // Close for 500ms
+      // Close for CONTROL_ACTIVE_TIME
       if(temperature > 0 && outputActive[0] == false && outputActive[1] == false) {
         digitalWrite(output1, HIGH);
         outputActive[1] = true;
@@ -206,8 +169,9 @@ void readButton() {
 }
 
 void readTemperature() {
-  // Gets called in blink function, to avoid reading
-  // at blinking time.
-  sensors.requestTemperatures();
-  temperature = sensors.getTempCByIndex(0);
+  if(millis() - timer_temperature > 1000) {
+    sensors.requestTemperatures();
+    temperature = sensors.getTempCByIndex(0);
+    timer_temperature = millis();
+  }
 }
