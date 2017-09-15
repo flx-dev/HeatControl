@@ -13,9 +13,9 @@
 #include<DallasTemperature.h>
 
 // PIN and CONSTANT Definitions
-#define output0 11               // Open
-#define output1 12               // Close
-#define tempPin 2                // DS18B20
+#define OUTPUT0 11               // Open
+#define OUTPUT1 12               // Close
+#define TEMPPIN 2                // DS18B20
 
 #define CONTROL_ACTIVE_TIME 1000 // [ms]
 #define CONTROL_LOOP_TIME 30000  // [ms]
@@ -27,7 +27,7 @@ bool outputState[4] = {false, false, true, true}; // +, -, + old, - old
 float T[5] = {26, 26, 0, 0, 0}; // Temperature {current, target, old, lcdCurrent, lcdTarget}
 float dT = 0, dTold = 1;
 
-OneWire oneWire(tempPin);
+OneWire oneWire(TEMPPIN);
 DallasTemperature sensors(&oneWire);
 LCDKeypad lcd;
 
@@ -37,10 +37,10 @@ byte c_down[8] = { B00100, B00100, B00100, B00100, B00100, B10101, B01110, B0010
 
 void setup() {
   // Define Pinmodes
-  pinMode(output0, OUTPUT);
-  pinMode(output1, OUTPUT);
-  digitalWrite(output0, LOW);
-  digitalWrite(output1, LOW);
+  pinMode(OUTPUT0, OUTPUT);
+  pinMode(OUTPUT1, OUTPUT);
+  digitalWrite(OUTPUT0, LOW);
+  digitalWrite(OUTPUT1, LOW);
 
   // Define LCD Button
   lcd.createChar(1,c_up);
@@ -105,10 +105,10 @@ void printLcd() {
 
 void close() {
   if(outputState[0] == true && millis() - timer[0] > CONTROL_ACTIVE_TIME) {
-    digitalWrite(output0, LOW);
+    digitalWrite(OUTPUT0, LOW);
     outputState[0] = false;
   } else if (outputState[1] == true && millis() - timer[0] > CONTROL_ACTIVE_TIME) {
-    digitalWrite(output1, LOW);
+    digitalWrite(OUTPUT1, LOW);
     outputState[1] = false;
   }
 }
@@ -118,14 +118,14 @@ void checkState() {
     if(T[1] - T[0] > 2.0 || T[0] < T[2]) {
       // Open for CONTROL_ACTIVE_TIME
       if(T[0] > 0 && outputState[0] == false && outputState[1] == false) {
-        digitalWrite(output0, HIGH);
+        digitalWrite(OUTPUT0, HIGH);
         outputState[0] = true;
         timer[0] = millis();
       }
     } else if (T[1] - T[0] < -2.0 || T[0] > T[2]) {
       // Close for CONTROL_ACTIVE_TIME
       if(T[0] > 0 && outputState[0] == false && outputState[1] == false) {
-        digitalWrite(output1, HIGH);
+        digitalWrite(OUTPUT1, HIGH);
         outputState[1] = true;
         timer[0] = millis();
       }
@@ -135,8 +135,8 @@ void checkState() {
     T[2] = T[0];
   }
   if (T[0] <= 0) {
-    digitalWrite(output0, LOW);
-    digitalWrite(output1, LOW);
+    digitalWrite(OUTPUT0, LOW);
+    digitalWrite(OUTPUT1, LOW);
     outputState[0] = false;
     outputState[1] = false;
   }
