@@ -1,7 +1,5 @@
 # Arduino based heat stabilizer
 
-## Overview
-
 Reads temperature from DS18B20 Sensor via DallasTemperature and OneWire library.
 Uses up and down button from shield to adjust the target temperature
 in range [20,38]. Shield displays current temperature, target temperature,
@@ -17,6 +15,18 @@ Arduino capable editor. Adjust pin constants at
 #define TEMPPIN 12
 ```
 where `OUTPUT0` is the motor open gate (true means active) and `OUTPUT1` is the close gate.
+Now you can adjust the time settings. The controller works with timer variables and `millis()`
+function instead of delays. With the following constants you can adjust the duration of
+some actions.
+```C
+#define CONTROL_ACTIVE_TIME 1000 // [ms]
+#define CONTROL_LOOP_TIME 30000  // [ms]
+#define BUTTON_DEAD_TIME 500     // [ms]
+```
+Here `CONTROL_ACTIVE_TIME` sets the activated time for the output gates. If it's 1000 the
+gate will open exactly for one second. `CONTROL_LOOP_TIME` sets the time for checking the
+temperature difference before and now, and opens the appropriate gate. `BUTTON_DEAD_TIME`
+disables the buttons for the adjusted value after press.
 
 ## Output
 
